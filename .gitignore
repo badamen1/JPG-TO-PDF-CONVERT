@@ -4,3 +4,5 @@ __pycache__/
 *$py.class
 .env
 .ipynb_checkpoints
+credentials.json
+token.json
