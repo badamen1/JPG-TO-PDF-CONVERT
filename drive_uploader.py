@@ -52,7 +52,14 @@ def authenticate(credentials_path: str = "credentials.json",
         if gauth.credentials is None:
             gauth.LocalWebserverAuth()
         elif gauth.access_token_expired:
-            gauth.Refresh()
+            try:
+                gauth.Refresh()
+            except Exception:
+                # Si el refresh falla (token revocado o expirado), limpiar y re-autenticar
+                if os.path.exists(token_path):
+                    os.remove(token_path)
+                gauth.credentials = None
+                gauth.LocalWebserverAuth()
         else:
             gauth.Authorize()
     else:
