@@ -41,6 +41,7 @@ def authenticate(
             try:
                 gauth.Refresh()
             except Exception as e:
+                logger.warning("Token refresh failed: %s. Reintentando autenticación...", e)
                 if os.path.exists(token_path):
                     os.remove(token_path)
                 gauth.credentials = None
@@ -141,5 +142,5 @@ def upload_client_to_drive(
 
         return "ok"
     except Exception as e:
-        logger.error("Error subiendo '%s': %s", client_name, e)
+        logger.exception("Error subiendo '%s': %s", client_name, e)
         return "error"
