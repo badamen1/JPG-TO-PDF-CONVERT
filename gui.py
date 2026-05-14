@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import os
 import sys
-from convert_images_to_pdf import collect_images, convert_image_to_pdf, merge_images_to_pdf
+from contratos.core.pdf_converter import collect_images, convert_image_to_pdf, merge_images_to_pdf
 
 class JPGToPDFGui:
     def __init__(self, root):
