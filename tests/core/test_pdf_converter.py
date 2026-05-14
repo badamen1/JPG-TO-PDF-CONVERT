@@ -1,10 +1,14 @@
 import os
 import pytest
+from PIL import Image
 from contratos.core.pdf_converter import (
     is_allowed_file,
     is_cedula,
     collect_images,
     separate_images,
+    convert_image_to_pdf,
+    merge_images_to_pdf,
+    process_client,
 )
 
 
@@ -77,3 +81,46 @@ def test_separate_images_splits_cedulas(tmp_path):
     assert "CC2_foto.jpg" in cedula_names
     assert "contrato.jpg" in other_names
     assert "contrato.jpg" not in cedula_names
+
+
+def _make_jpg(path) -> str:
+    Image.new("RGB", (1, 1), color=(255, 0, 0)).save(str(path), "JPEG")
+    return str(path)
+
+
+def test_convert_image_to_pdf_success(tmp_path):
+    img = _make_jpg(tmp_path / "foto.jpg")
+    ok, out = convert_image_to_pdf(img, str(tmp_path))
+    assert ok is True
+    assert out is not None and os.path.isfile(out)
+    assert out.endswith(".pdf")
+
+
+def test_convert_image_to_pdf_invalid_image(tmp_path):
+    bad = tmp_path / "bad.jpg"
+    bad.write_bytes(b"not an image")
+    ok, out = convert_image_to_pdf(str(bad), str(tmp_path))
+    assert ok is False
+    assert out is None
+
+
+def test_merge_images_to_pdf_empty_list(tmp_path):
+    ok, out = merge_images_to_pdf([], str(tmp_path), "merged")
+    assert ok is False
+    assert out is None
+
+
+def test_merge_images_to_pdf_success(tmp_path):
+    imgs = [_make_jpg(tmp_path / f"foto{i}.jpg") for i in range(2)]
+    ok, out = merge_images_to_pdf(imgs, str(tmp_path), "combined")
+    assert ok is True
+    assert out is not None and os.path.isfile(out)
+
+
+def test_process_client_creates_pdf_subdir(tmp_path):
+    client_dir = tmp_path / "Cliente ABC"
+    client_dir.mkdir()
+    _make_jpg(client_dir / "contrato.jpg")
+    pdfs = process_client(str(client_dir))
+    assert (client_dir / "_pdfs").is_dir()
+    assert len(pdfs) >= 1

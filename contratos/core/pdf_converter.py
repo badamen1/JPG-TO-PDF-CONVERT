@@ -76,8 +76,8 @@ def convert_image_to_pdf(
             return True, out_path
     except UnidentifiedImageError:
         logger.error("'%s' no es una imagen válida o está corrupta.", img_path)
-    except Exception as e:
-        logger.error("Error procesando '%s': %s", img_path, e)
+    except Exception:
+        logger.exception("Error procesando '%s'.", img_path)
     return False, None
 
 
@@ -94,13 +94,13 @@ def merge_images_to_pdf(
     try:
         for img_path in image_paths:
             try:
-                im = Image.open(img_path)
-                images_rgb.append(im.convert("RGB"))
+                with Image.open(img_path) as im:
+                    images_rgb.append(im.convert("RGB"))
                 logger.info("Añadido al PDF: '%s'", img_path)
             except UnidentifiedImageError:
                 logger.error("'%s' no es una imagen válida o está corrupta.", img_path)
-            except Exception as e:
-                logger.error("Error cargando '%s': %s", img_path, e)
+            except Exception:
+                logger.exception("Error cargando '%s'.", img_path)
 
         if not images_rgb:
             logger.error("No se pudieron cargar imágenes válidas para combinar.")
@@ -128,8 +128,8 @@ def merge_images_to_pdf(
         logger.info("PDF combinado creado: '%s' (%d páginas)", out_path, len(images_rgb))
         return True, out_path
 
-    except Exception as e:
-        logger.error("Error creando PDF combinado: %s", e)
+    except Exception:
+        logger.exception("Error creando PDF combinado.")
         return False, None
     finally:
         for im in images_rgb:
