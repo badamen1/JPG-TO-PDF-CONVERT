@@ -1,4 +1,7 @@
+import sys
 import logging
+from logging import StreamHandler
+
 from contratos.logger import get_logger
 
 
@@ -10,7 +13,10 @@ def test_get_logger_returns_logger_with_correct_name():
 
 def test_get_logger_has_stdout_handler():
     logger = get_logger("contratos.test.handler")
-    assert len(logger.handlers) >= 1
+    assert any(
+        isinstance(h, StreamHandler) and h.stream is sys.stdout
+        for h in logger.handlers
+    )
 
 
 def test_get_logger_no_duplicate_handlers():

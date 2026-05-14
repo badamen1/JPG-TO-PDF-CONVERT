@@ -13,5 +13,6 @@ def get_logger(name: str) -> logging.Logger:
             datefmt="%Y-%m-%d %H:%M:%S",
         ))
         logger.addHandler(handler)
+    logger.propagate = False  # prevent double-logging if root logger has handlers
     logger.setLevel(logging.INFO)
     return logger
