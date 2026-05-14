@@ -94,15 +94,17 @@ def corregir_contratos(input_folder: str, delete_old: bool = False) -> Tuple[int
                         break
 
             if is_modified:
+                saved = False
                 if delete_old:
                     temp_path = pdf_path + ".tmp"
                     doc.save(temp_path, garbage=4, deflate=True)
                     doc.close()
-                    time.sleep(0.5)
+                    time.sleep(0.5)  # Windows needs time to release the file lock
                     for intento in range(3):
                         try:
                             os.replace(temp_path, pdf_path)
                             logger.info("[REEMPLAZADO] %s", filename)
+                            saved = True
                             break
                         except PermissionError:
                             if intento < 2:
@@ -120,17 +122,19 @@ def corregir_contratos(input_folder: str, delete_old: bool = False) -> Tuple[int
                     doc.save(output_path, garbage=4, deflate=True)
                     doc.close()
                     logger.info("[MODIFICADO] %s", filename)
+                    saved = True
 
-                modificados += 1
+                if saved:
+                    modificados += 1
             else:
                 doc.close()
                 logger.info("[SIN CAMBIOS] %s", filename)
 
             procesados += 1
 
-        except Exception as e:
+        except Exception:
             doc.close()
-            logger.error("Falló el procesamiento de '%s': %s", filename, e)
+            logger.exception("Falló el procesamiento de '%s'.", filename)
             procesados += 1
 
     logger.info(

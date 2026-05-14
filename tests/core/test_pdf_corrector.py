@@ -33,7 +33,6 @@ def test_processes_pdf_with_no_matching_patterns(tmp_path):
     mock_page.search_for.return_value = []
     mock_doc.__len__ = MagicMock(return_value=1)
     mock_doc.__getitem__ = MagicMock(return_value=mock_page)
-    mock_doc.__iter__ = MagicMock(return_value=iter([mock_page]))
 
     with patch("contratos.core.pdf_corrector.fitz.open", return_value=mock_doc):
         procesados, modificados = corregir_contratos(str(tmp_path))
