@@ -65,13 +65,18 @@ def formatear_fecha(iso_date: str) -> str:
         dt = datetime.strptime(iso_date.split(".")[0], "%Y-%m-%dT%H:%M:%S")
         return dt.strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
+        logger.debug("No se pudo parsear fecha '%s', se devuelve original.", iso_date)
         return iso_date
 
 
 def formatear_tamanio(bytes_str: str | None) -> str:
     if not bytes_str:
         return "0 B"
-    b = int(bytes_str)
+    try:
+        b = int(bytes_str)
+    except ValueError:
+        logger.warning("fileSize no es numérico: %s", bytes_str)
+        return "0 B"
     if b < 1024:
         return f"{b} B"
     if b < 1024 * 1024:
