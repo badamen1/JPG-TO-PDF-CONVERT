@@ -1,20 +1,10 @@
-# 📁 Gestión Documental de Instalaciones de Internet
+# Gestión Documental de Instalaciones de Internet
 
-Conjunto de herramientas en Python para automatizar la conversión de imágenes a PDF y la subida de documentación de clientes a Google Drive.
-
----
-
-## 🗂️ Herramientas disponibles
-
-| Herramienta | Descripción |
-|---|---|
-| `convert_images_to_pdf.py` | Convierte imágenes (PNG/JPG/JPEG) a PDF desde la terminal |
-| `subir_semana.py` | Sube una semana completa de clientes a Google Drive |
-| `gui.py` | Interfaz gráfica para convertir imágenes a PDF |
+Herramientas en Python para convertir imágenes a PDF y gestionar contratos en Google Drive.
 
 ---
 
-## ⚙️ Instalación
+## Instalación
 
 1. Crear y activar el entorno virtual:
 ```bash
@@ -27,36 +17,63 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+3. Colocar el archivo `credentials.json` (descargado desde Google Cloud Console) en la raíz del proyecto.
+
+> En la primera ejecución se abrirá el navegador para autorizar. El token se guarda en `token.json` automáticamente para usos futuros.
+
 ---
 
-## 🚀 Subir semana completa a Google Drive
-
-Comando principal del proyecto. Procesa todas las carpetas de clientes de una semana y las sube automáticamente a una carpeta ya existente en Drive.
+## Interfaz gráfica
 
 ```bash
-python subir_semana.py --ruta_local "C:/Proyecto/Yoro/Semana 8" --drive_folder_id "ID_DE_CARPETA"
+python gui.py
 ```
 
-### ¿Qué hace por cada cliente?
+Permite seleccionar imágenes JPG/PNG y convertirlas a PDF desde una ventana gráfica.
 
-1. **Recoge PDFs existentes** en la carpeta del cliente (se suben tal cual)
-2. **Une imágenes de cédula** (archivos con `CC1` o `CC2` en el nombre) en un único `CEDULA_<cliente>.pdf`
-3. **Convierte el resto de imágenes** a PDFs individuales
-4. **Verifica en Drive** si la carpeta del cliente ya existe → si existe la omite, si no existe la crea y sube todo
-5. **Muestra un resumen** con el estado de cada cliente
+---
+
+## Comandos de terminal
+
+El `FOLDER_ID` es el código al final de la URL de Google Drive:
+`https://drive.google.com/drive/folders/<FOLDER_ID>`
+
+### Subir una semana completa de clientes
+
+Procesa cada subcarpeta de clientes (convierte imágenes a PDF) y las sube a Drive.
+
+```bash
+python -m contratos.cli.subir_semana --ruta_local <carpeta_semana> --drive_folder_id <FOLDER_ID>
+```
+
+**Ejemplo:**
+```bash
+python -m contratos.cli.subir_semana --ruta_local "C:\Yoro\Semana 8" --drive_folder_id 1BxiMVs0XRA5nFMdKvBd
+```
+
+Opción adicional:
+```
+--credentials ruta/a/credentials.json   # por defecto: credentials.json en la raíz
+```
+
+Por cada cliente, el comando:
+1. Recoge PDFs existentes en la carpeta del cliente
+2. Une imágenes de cédula (`CC1`, `CC2`) en `CEDULA_<cliente>.pdf`
+3. Convierte el resto de imágenes a PDFs individuales
+4. Crea la carpeta en Drive (si no existe) y sube todo
 
 ### Estructura esperada en tu computador
 
 ```
 Semana 8/
 ├── JUAN PEREZ/
-│   ├── CC1.jpg          ← cédula frontal
-│   ├── CC2.jpg          ← cédula trasera
+│   ├── CC1.jpg
+│   ├── CC2.jpg
 │   └── instalacion.jpg
 ├── MARIA LOPEZ/
 │   ├── CC1.png
 │   ├── CC2.png
-│   ├── contrato.pdf     ← PDF existente, se sube directo
+│   ├── contrato.pdf
 │   └── router.jpg
 ```
 
@@ -73,96 +90,104 @@ Carpeta destino/
 │   └── router.pdf
 ```
 
-### Opciones
+---
 
-| Opción | Descripción |
-|---|---|
-| `--ruta_local` | Ruta local a la carpeta de la semana |
-| `--drive_folder_id` | ID de la carpeta destino en Drive (ya debe existir) |
-| `--credentials` | Ruta al `credentials.json` (default: `credentials.json`) |
+### Subir contratos corregidos a Drive
 
-### Resumen de consola
+Sube PDFs de una carpeta local a sus subcarpetas en Drive según el código de 6 dígitos en el nombre del archivo.
 
+```bash
+python -m contratos.cli.subir_contratos <carpeta_local> <FOLDER_ID>
 ```
-============================================================
-  📊 RESUMEN FINAL
-============================================================
-  ⏱  Tiempo total: 45.2 segundos
-  👥 Clientes encontrados: 5
-  ✅ Subidos: 4
-  ⏭  Omitidos (ya en Drive): 1
-  📄 Total archivos procesados: 18
 
-  Cliente                          Archivos      Estado
-  ────────────────────────────── ────────── ──────────
-  JUAN PEREZ                            3          ✅
-  MARIA LOPEZ                           4          ✅
-  CARLOS GARCIA (ya subido)             3          ⏭
-============================================================
+**Ejemplo:**
+```bash
+python -m contratos.cli.subir_contratos "C:\Contratos\corregidos" 1BxiMVs0XRA5nFMdKvBd
 ```
 
 ---
 
-## 🔐 Configurar Google Drive API (solo una vez)
+### Pipeline completo
+
+Ejecuta en orden: **1) corregir PDFs → 2) subir a Drive → 3) limpiar duplicados**.
+
+```bash
+python -m contratos.cli.pipeline <carpeta_local> <FOLDER_ID>
+```
+
+**Ejecutar solo algunos pasos:**
+```bash
+# Solo corregir (paso 1)
+python -m contratos.cli.pipeline <carpeta_local> <FOLDER_ID> --pasos 1
+
+# Solo subir y limpiar (pasos 2 y 3)
+python -m contratos.cli.pipeline <carpeta_local> <FOLDER_ID> --pasos 2 3
+```
+
+Los PDFs corregidos se guardan en `<carpeta_local>/contratos_corregidos/`.
+
+---
+
+### Limpiar duplicados en Drive
+
+Busca archivos `Contrato Nº ...` duplicados, muestra cuáles conservar y cuáles eliminar, y pide confirmación antes de mover a la papelera.
+
+```bash
+python -m contratos.cli.limpiar <FOLDER_ID>
+```
+
+---
+
+### Explorar árbol de carpetas en Drive
+
+Muestra la estructura de carpetas y la cantidad de archivos por carpeta.
+
+```bash
+python -m contratos.cli.explorar <FOLDER_ID>
+```
+
+---
+
+## Configurar Google Drive API (solo una vez)
 
 1. Ir a [Google Cloud Console](https://console.cloud.google.com/)
-2. Crear un proyecto nuevo o seleccionar uno existente
+2. Crear un proyecto o seleccionar uno existente
 3. **APIs y Servicios → Biblioteca** → buscar **Google Drive API** → Habilitar
 4. **APIs y Servicios → Credenciales → Crear credenciales → ID de cliente OAuth**
-5. Configurar pantalla de consentimiento: tipo **Externo**, agregar scope `https://www.googleapis.com/auth/drive`, agregarte como usuario de prueba
+5. Pantalla de consentimiento: tipo **Externo**, scope `https://www.googleapis.com/auth/drive`, agregarte como usuario de prueba
 6. Tipo de aplicación: **Aplicación de escritorio**
 7. Descargar el JSON → renombrarlo a `credentials.json` → colocarlo en la raíz del proyecto
 
-> En la primera ejecución se abrirá el navegador para autorizar. El token se guarda en `token.json` automáticamente para usos futuros.
+---
+
+## Estructura del proyecto
+
+```
+contratos/
+├── exceptions.py          # ContratosError, DriveAuthError, DriveUploadError, PdfProcessingError
+├── logger.py              # get_logger() centralizado
+├── core/
+│   ├── drive_client.py    # autenticación y operaciones de Drive
+│   ├── pdf_converter.py   # conversión de imágenes a PDF
+│   ├── pdf_corrector.py   # corrección de texto en PDFs con PyMuPDF
+│   └── duplicates.py      # detección de duplicados en Drive
+└── cli/
+    ├── subir_contratos.py
+    ├── subir_semana.py
+    ├── pipeline.py
+    ├── limpiar.py
+    └── explorar.py
+
+gui.py                     # interfaz gráfica (tkinter)
+tests/                     # 59 tests automatizados
+credentials.json           # NO subir a git
+token.json                 # NO subir a git
+```
 
 ---
 
-## 🖼️ Convertir imágenes a PDF (CLI)
-
-Convierte imágenes individuales o carpetas enteras a PDF.
+## Tests
 
 ```bash
-# Un PDF por imagen
-python convert_images_to_pdf.py imagen1.jpg imagen2.png
-
-# Todas las imágenes de una carpeta
-python convert_images_to_pdf.py C:\ruta\carpeta\
-
-# Combinar varias imágenes en un solo PDF
-python convert_images_to_pdf.py imagen1.jpg imagen2.jpg -m -n documento_final
-
-# Guardar PDFs en una carpeta específica
-python convert_images_to_pdf.py *.jpg -o C:\salida\
-```
-
-### Opciones
-
-| Opción | Descripción |
-|---|---|
-| `-o`, `--out` | Directorio de salida |
-| `-m`, `--merge` | Combinar todas las imágenes en un solo PDF |
-| `-n`, `--name` | Nombre del PDF combinado (solo con `--merge`) |
-| `-d`, `--delete-original` | Eliminar imágenes originales tras conversión exitosa |
-
----
-
-## 🖥️ Interfaz gráfica
-
-```bash
-python gui.py
-```
-
----
-
-## 📦 Archivos del proyecto
-
-```
-JPG TO PDF CONVERT/
-├── subir_semana.py          ← subida a Drive
-├── drive_uploader.py        ← módulo Drive API
-├── convert_images_to_pdf.py ← conversión de imágenes
-├── gui.py                   ← interfaz gráfica
-├── requirements.txt
-├── credentials.json         ← NO subir a git
-└── token.json               ← NO subir a git
+python -m pytest tests/ -v
 ```
