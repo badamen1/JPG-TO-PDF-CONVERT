@@ -1,3 +1,4 @@
+.gitignore
 **/.venv
 __pycache__/
 *.py[cod]
@@ -6,5 +7,4 @@ __pycache__/
 .ipynb_checkpoints
 credentials.json
 token.json
-COMMITS.MD
 docs/
